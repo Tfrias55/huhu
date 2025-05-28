@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Repeat After Me - Periodic Memory Game (Vue Edition)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(120deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+
+    header {
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.4);
+      border-bottom: 2px solid #00eaff;
+      box-shadow: 0 4px 10px rgba(0, 255, 255, 0.2);
+    }
+
+    h1 {
+      font-size: 3em;
+      color: #00eaff;
+      margin: 0;
+    }
+
+    #gameContainer {
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #sequenceDisplay {
+      font-size: 2.0em;
+      margin: 20px 0;
+      padding: 20px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid #00eaff;
+      width: 80%;
+      max-width: 600px;
+      min-height: 60px;
+      transition: all 0.2s ease;
+    }
+
+    .flash {
+      animation: flash 0.4s;
+    }
+
+    @keyframes flash {
+      0% {
+        transform: scale(1);
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      50% {
+        transform: scale(1.2);
+        background-color: rgba(0, 255, 255, 0.3);
+      }
+      100% {
+        transform: scale(1);
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+
+    #elementButtons {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 15px;
+      width: 100%;
+      max-width: 800px;
+      margin-top: 20px;
+    }
+
+    .element-button {
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      background-color: #00eaff;
+      color: #000;
+      font-size: 1.1em;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.3s;
+    }
+
+    .element-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 15px #00eaff;
+    }
+
+    .stats {
+      margin-top: 25px;
+      font-size: 1.1em;
+    }
+
+    footer {
+      margin-top: 50px;
+      padding: 15px;
+      font-size: 0.9em;
+      color: #aaa;
+    }
+  </style>
+</head>
+
+<body>
+  
+    <audio id="background-music" loop autoplay>
+        <source src="BG.mp3" type="audio/mp3">
+      </audio>
+
+    <audio id="correct-sound">
+        <source src="CORRECT.mp3" type="audio/mp3">
+      </audio>
+
+  
+    <audio id="wrong-sound">
+       <source src="WRONG.mp3" type="audio/mp3">
+      </audio>
+
+  <div id="app">
+    <header>
+      <h1>Repeat After Me</h1>
+      <p>Test your memory with elements from the periodic table!</p>
+    </header>
+
+    <main id="gameContainer">
+      <div id="sequenceDisplay" :class="{ flash: flashAnimation }">{{ message }}</div>
+
+      <div class="stats">
+        <span>Level: <strong>{{ level }}</strong></span> |
+        <span>Score: <strong>{{ score }}</strong></span> |
+        <span>Strikes: <strong>{{ strikes }}</strong></span>
+      </div>
+
+      <div v-if="!gameStarted && !gameOver" style="margin: 20px;">
+        <button class="element-button" @click="startGame">Start Game</button>
+      </div>
+      <div v-if="gameOver" style="margin: 20px;">
+        <button class="element-button" @click="startGame">Play Again</button>
+      </div>
+
+      <div id="elementButtons">
+        <button
+          v-for="element in elements"
+          :key="element.symbol"
+          class="element-button"
+          :title="element.name"
+          @click="selectElement(element)"
+        >
+          {{ element.symbol }}
+        </button>
+      </div>
+    </main>
+
+    <footer>
+      <p>Created by Trenetyh Frias</p>
+    </footer>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          message: "Click start to begin the memory challenge!",
+          elements: [
+            { symbol: "H", name: "Hydrogen" },
+            { symbol: "He", name: "Helium" },
+            { symbol: "Li", name: "Lithium" },
+            { symbol: "Be", name: "Beryllium" },
+            { symbol: "B", name: "Boron" },
+            { symbol: "C", name: "Carbon" },
+            { symbol: "N", name: "Nitrogen" },
+            { symbol: "O", name: "Oxygen" },
+            { symbol: "F", name: "Fluorine" },
+            { symbol: "Ne", name: "Neon" },
+            { symbol: "Na", name: "Sodium" },
+            { symbol: "Mg", name: "Magnesium" },
+            { symbol: "Al", name: "Aluminum" },
+            { symbol: "Si", name: "Silicon" },
+            { symbol: "P", name: "Phosphorus" },
+            { symbol: "S", name: "Sulfur" },
+            { symbol: "Cl", name: "Chlorine" },
+            { symbol: "Ar", name: "Argon" },
+            { symbol: "K", name: "Potassium" },
+            { symbol: "Ca", name: "Calcium" },
+            { symbol: "Sc", name: "Scandium" },
+            { symbol: "Ti", name: "Titanium" },
+            { symbol: "V", name: "Vanadium" },
+            { symbol: "Cr", name: "Chromium" },
+            { symbol: "Mn", name: "Manganese" },
+            { symbol: "Fe", name: "Iron" },
+            { symbol: "Co", name: "Cobalt" },
+            { symbol: "Ni", name: "Nickel" },
+            { symbol: "Cu", name: "Copper" },
+            { symbol: "Zn", name: "Zinc" },
+            { symbol: "Ga", name: "Gallium" },
+            { symbol: "Ge", name: "Germanium" },
+            { symbol: "As", name: "Arsenic" },
+            { symbol: "Se", name: "Selenium" },
+            { symbol: "Br", name: "Bromine" },
+            { symbol: "Kr", name: "Krypton" },
+            { symbol: "Rb", name: "Rubidium" },
+            { symbol: "Sr", name: "Strontium" },
+            { symbol: "Y", name: "Yttrium" },
+            { symbol: "Zr", name: "Zirconium" },
+            { symbol: "Nb", name: "Niobium" },
+            { symbol: "La", name: "Lanthanum" }
+          ],
+          sequence: [],
+          userSequence: [],
+          level: 1,
+          score: 0,
+          strikes: 0,
+          gameStarted: false,
+          gameOver: false,
+          flashAnimation: false,
+        };
+      },
+      methods: {
+        startGame() {
+          this.sequence = [];
+          this.userSequence = [];
+          this.level = 1;
+          this.score = 0;
+          this.strikes = 0;
+          this.gameStarted = true;
+          this.gameOver = false;
+          this.message = "Memorize the sequence...";
+
+          document.getElementById('background-music').play();
+
+          this.startCountdown();
+        },
+        startCountdown() {
+          let countdown = 3;
+          this.message = `Get ready: ${countdown}`;
+          const interval = setInterval(() => {
+            countdown--;
+            if (countdown > 0) {
+              this.message = `Get ready: ${countdown}`;
+            } else {
+              clearInterval(interval);
+              this.nextRound();
+            }
+          }, 1000);
+        },
+        nextRound() {
+          this.userSequence = [];
+          const randomElement = this.elements[Math.floor(Math.random() * this.elements.length)];
+          this.sequence.push(randomElement.symbol);
+          this.showSequence(0);
+        },
+        showSequence(index) {
+          if (index < this.sequence.length) {
+            this.flashAnimation = true;
+            this.message = this.sequence[index];
+            setTimeout(() => {
+              this.flashAnimation = false;
+              setTimeout(() => {
+                this.showSequence(index + 1);
+              }, 500);
+            }, 800);
+          } else {
+            setTimeout(() => {
+              this.message = "Now repeat the sequence!";
+            }, 500);
+          }
+        },
+        selectElement(element) {
+          if (!this.gameStarted) return;
+
+          this.userSequence.push(element.symbol);
+          const currentIndex = this.userSequence.length - 1;
+
+          if (this.userSequence[currentIndex] !== this.sequence[currentIndex]) {
+            this.strikes++;
+            this.message = "Oops! Try again from the beginning.";
+            this.userSequence = [];
+            this.playWrongSound();
+
+            if (this.strikes >= 3) {
+              this.message = "Game Over! You reached level " + this.level;
+              this.gameStarted = false;
+              this.gameOver = true;
+            }
+            return;
+          }
+
+          if (this.userSequence.length === this.sequence.length) {
+            this.score += this.level * 10;
+            this.level++;
+            this.message = "Great job! Get ready for the next level.";
+            this.playCorrectSound();
+            setTimeout(() => {
+              this.startCountdown();
+            }, 1500);
+          }
+        },
+
+        // Play Correct Answer Sound
+        playCorrectSound() {
+          document.getElementById('correct-sound').play();
+        },
+
+        // Play Wrong Answer Sound
+        playWrongSound() {
+          document.getElementById('wrong-sound').play();
+        }
+      },
+    }).mount("#app");
+  </script>
+</body>
+
+</html>
